@@ -11,7 +11,7 @@ CHANGES:
 - Moved PickUpController to cnmPickupReturn()
 - Created bool variable cnmPickupReturn
   + Default instantiated to FALSE
-  + used to keep track on if the code needs to send a return
+  + used to keep track of if the code needs to send a return statement
 
 TODO:
   - Move other MOBILITYSTATEMACHINE code in switch statement to seperate functions
