@@ -19,7 +19,9 @@ PickUpController::PickUpController() {
 
 PickUpResult PickUpController::pickUpSelectedTarget(bool blockBlock) {
     //threshold distance to be from the target block before attempting pickup
-    float targetDist = 0.20; //meters
+    
+    //CNM EDITED
+    float targetDist = 0.20; //meters, ORIGINALLY .25
 
 
     /*PickUpResult result;
