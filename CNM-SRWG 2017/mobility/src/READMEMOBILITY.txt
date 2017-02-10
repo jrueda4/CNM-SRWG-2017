@@ -5,11 +5,16 @@ EDITED BY:  Jeff Schlindwein, Steve Lindsey, Kaily Young, Juan Rueda, David Kirb
 
 CHANGES:
 - Created a section for CNM Code to go
-- Moved speed variable to CNM Code Section for easy finding
+  + line 163
+- Moved speed variable to CNM Code Section to find more easily
+  + float searchVelocity = 0.4 // originally .2
 - Created Function void CNMPickUpReturn()
+  + line 442
   + Code for the STATE_MACHINE_PICKUP in MOBILITYSTATEMACHINE
 - Moved PickUpController to cnmPickupReturn()
+  + line 743
 - Created bool variable cnmPickupReturn
+  + line 170
   + Default instantiated to FALSE
   + used to keep track of if the code needs to send a return statement
 
