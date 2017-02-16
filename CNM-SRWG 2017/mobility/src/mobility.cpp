@@ -1,15 +1,14 @@
-
 //#INCLUDES
 //--------------------------------------------
 #include <ros/ros.h>
 
-	// ROS libraries
+// ROS libraries
 #include <angles/angles.h>
 #include <random_numbers/random_numbers.h>
 #include <tf/transform_datatypes.h>
 #include <tf/transform_listener.h>
 
-	// ROS messages
+// ROS messages
 #include <std_msgs/Float32.h>
 #include <std_msgs/Int16.h>
 #include <std_msgs/UInt8.h>
@@ -21,13 +20,13 @@
 #include <nav_msgs/Odometry.h>
 #include <apriltags_ros/AprilTagDetectionArray.h>
 
-	// Include Controllers
+// Include Controllers
 #include "PickUpController.h"
 #include "DropOffController.h"
 #include "SearchController.h"
 
-	// To handle shutdown signals so the node quits
-	// properly in response to "rosnode kill"
+// To handle shutdown signals so the node quits
+// properly in response to "rosnode kill"
 #include <ros/ros.h>
 #include <signal.h>
 
@@ -37,8 +36,8 @@ using namespace std;
 //--------------------------------------------
 random_numbers::RandomNumberGenerator* rng;     // Random number generator... should be DELETED later
 
-												// STATE MACHINE STATE CONSTANTS (for mobility SWITCH)
-												//--------------------------------------------
+// STATE MACHINE STATE CONSTANTS (for mobility SWITCH)
+//--------------------------------------------
 #define STATE_MACHINE_TRANSFORM 0
 #define STATE_MACHINE_ROTATE 1
 #define STATE_MACHINE_SKID_STEER 2
@@ -49,8 +48,8 @@ int stateMachineState = STATE_MACHINE_TRANSFORM; //stateMachineState keeps track
 
 const unsigned int mapHistorySize = 500;        // How many points to use in calculating the map average position
 
-												//GEOMETRY_MSG::POSE2D CLASS OBJECTS            //x, y, theta public variables (vectors)
-												//--------------------------------------------
+//GEOMETRY_MSG::POSE2D CLASS OBJECTS            //x, y, theta public variables (vectors)
+//--------------------------------------------
 geometry_msgs::Pose2D currentLocation;          //current location of robot       
 geometry_msgs::Pose2D currentLocationMap;       //current location on MAP
 geometry_msgs::Pose2D currentLocationAverage;   //???
@@ -65,10 +64,10 @@ geometry_msgs::Pose2D mapLocation[mapHistorySize]; //An array in which to store 
 std_msgs::String msg;                           //std_msgs shares current STATE_MACHINE STATUS in mobility state machine
 geometry_msgs::Twist velocity;                  //???
 
-												//Do not know what the map and odom locations do ATM - JMS
+//Do not know what the map and odom locations do ATM - JMS
 
-												//Controller Class Objects
-												//--------------------------------------------
+//Controller Class Objects
+//--------------------------------------------
 PickUpController pickUpController;
 DropOffController dropOffController;
 SearchController searchController;
@@ -137,7 +136,6 @@ ros::Subscriber obstacleSubscriber;
 ros::Subscriber odometrySubscriber;
 ros::Subscriber mapSubscriber;
 
-
 // Timers
 ros::Timer stateMachineTimer;
 ros::Timer publish_status_timer;
@@ -172,6 +170,7 @@ void targetDetectedReset(const ros::TimerEvent& event);
 
 //CNM Code Follows:
 //--------------------------------------------
+
 //Manipulative ORIGINAL FILE Variables
 float searchVelocity = 0.4; // meters/second  ORIGINALLY .2
 
