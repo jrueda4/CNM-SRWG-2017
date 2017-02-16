@@ -179,12 +179,13 @@ float rotateOnlyAngleTolerance = 0.4;
 int returnToSearchDelay = 5;
 
 bool CNMTransformCode();        //A function for the Transform segment in Mobility State Machine
+				//	- returns true only if it needs to return
+bool CNMPickupCode();           //A function for PickUpController in Mobility State Machine
+				//	- returns false if it needs to break
+bool CNMRotateCode();		//A function for the Rotate Mobility State Machine Code
 
-void CNMPickupCode();           //A function for PickUpController in Mobility State Machine
-								//--variables for CNMPickUpCode
-bool cnmPickUpReturn = false;   //A variable used in CNMPickup to determine if we must return
-
-
+void CNMSkidSteerCode();	//A function with all the skid steer mobility code
+								
 //MAIN
 //--------------------------------------------
 int main(int argc, char **argv)
@@ -344,24 +345,11 @@ void mobilityStateMachine(const ros::TimerEvent&)
 		case STATE_MACHINE_ROTATE:
 		{
 			stateMachineMsg.data = "ROTATING";
-
-			// Calculate the diffrence between current and desired
-			// heading in radians.
-			float errorYaw = angles::shortest_angular_distance(currentLocation.theta, goalLocation.theta);
-
-			// If angle > 0.4 radians rotate but dont drive forward.
-			if (fabs(angles::shortest_angular_distance(currentLocation.theta, goalLocation.theta)) > rotateOnlyAngleTolerance)
+			if(CNMRotateCode())
 			{
-				// rotate but dont drive  0.05 is to prevent turning in reverse
-				sendDriveCommand(0.05, errorYaw);
 				break;
 			}
-			else
-			{
-				// move to differential drive step
-				stateMachineState = STATE_MACHINE_SKID_STEER;
-				//fall through on purpose.
-			}
+			//Purposefully fall through to next case without breaking
 		}
 
 		// Calculate angle between currentLocation.x/y and goalLocation.x/y
@@ -370,32 +358,9 @@ void mobilityStateMachine(const ros::TimerEvent&)
 		case STATE_MACHINE_SKID_STEER:
 		{
 			stateMachineMsg.data = "SKID_STEER";
-
-			// calculate the distance between current and desired heading in radians
-			float errorYaw = angles::shortest_angular_distance(currentLocation.theta, goalLocation.theta);
-
-			// goal not yet reached drive while maintaining proper heading.
-			if (fabs(angles::shortest_angular_distance(currentLocation.theta, atan2(goalLocation.y - currentLocation.y, goalLocation.x - currentLocation.x))) < M_PI_2)
-			{
-				// drive and turn simultaniously
-				sendDriveCommand(searchVelocity, errorYaw / 2);
-			}
-			// goal is reached but desired heading is still wrong turn only
-			else if (fabs(angles::shortest_angular_distance(currentLocation.theta, goalLocation.theta)) > 0.1)
-			{
-				// rotate but dont drive
-				sendDriveCommand(0.0, errorYaw);
-			}
-			else
-			{
-				// stop
-				sendDriveCommand(0.0, 0.0);
-				avoidingObstacle = false;
-
-				// move back to transform step
-				stateMachineState = STATE_MACHINE_TRANSFORM;
-			}
-
+			
+			CNMSkidSteerCode();
+			
 			break;
 		}
 
@@ -403,11 +368,8 @@ void mobilityStateMachine(const ros::TimerEvent&)
 		{
 			stateMachineMsg.data = "PICKUP";
 
-			CNMPickupCode();
-
-			if (cnmPickUpReturn)
+			if(CNMPickupCode())
 			{
-				cnmPickUpReturn = false;
 				return;
 			}
 
@@ -427,7 +389,8 @@ void mobilityStateMachine(const ros::TimerEvent&)
 		} /* end of switch() */
 	}
 	// mode is NOT auto
-	else {
+	else 
+	{
 		// publish current state for the operator to see
 		stateMachineMsg.data = "WAITING";
 	}
@@ -747,7 +710,7 @@ void mapAverage()
 //CNM Functions Follow
 //-----------------------------------
 
-void CNMPickupCode()
+bool CNMPickupCode()
 {
 
 	PickUpResult result;
@@ -802,13 +765,15 @@ void CNMPickupCode()
 			wristAnglePublish.publish(angle);
 			sendDriveCommand(0.0, 0);
 
-			cnmPickUpReturn = true;
+			return = true;
 		}
 	}
-	else {
+	else 
+	{
 		stateMachineState = STATE_MACHINE_TRANSFORM;
 	}
-
+	
+	return false;
 }
 
 bool CNMTransformCode()
@@ -900,4 +865,56 @@ bool CNMTransformCode()
 	}
 
 	return true;
+}
+
+bool CNMRotateCode()
+{
+
+	// Calculate the diffrence between current and desired
+	// heading in radians.
+	float errorYaw = angles::shortest_angular_distance(currentLocation.theta, goalLocation.theta);
+
+	// If angle > 0.4 radians rotate but dont drive forward.
+	if (fabs(angles::shortest_angular_distance(currentLocation.theta, goalLocation.theta)) > rotateOnlyAngleTolerance)
+	{
+		// rotate but dont drive  0.05 is to prevent turning in reverse
+		sendDriveCommand(0.05, errorYaw);
+		return true;
+	}
+	else
+	{
+		// move to differential drive step
+		stateMachineState = STATE_MACHINE_SKID_STEER;
+		//fall through on purpose.
+	}
+	
+	return false;
+}
+
+void CNMSkidSteerCode()
+{
+	// calculate the distance between current and desired heading in radians
+	float errorYaw = angles::shortest_angular_distance(currentLocation.theta, goalLocation.theta);
+
+	// goal not yet reached drive while maintaining proper heading.
+	if (fabs(angles::shortest_angular_distance(currentLocation.theta, atan2(goalLocation.y - currentLocation.y, goalLocation.x - currentLocation.x))) < M_PI_2)
+	{
+		// drive and turn simultaniously
+		sendDriveCommand(searchVelocity, errorYaw / 2);
+	}
+	// goal is reached but desired heading is still wrong turn only
+	else if (fabs(angles::shortest_angular_distance(currentLocation.theta, goalLocation.theta)) > 0.1)
+	{
+		// rotate but dont drive
+		sendDriveCommand(0.0, errorYaw);
+	}
+	else
+	{
+		// stop
+		sendDriveCommand(0.0, 0.0);
+		avoidingObstacle = false;
+
+		// move back to transform step
+		stateMachineState = STATE_MACHINE_TRANSFORM;
+	}
 }
