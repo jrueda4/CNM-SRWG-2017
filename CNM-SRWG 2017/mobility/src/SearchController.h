@@ -18,8 +18,6 @@ class SearchController
 
     SearchController();
 
-    void CNMResetStuckBehavior(geometry_msgs::Pose2D currentLocation);
-
     //sets centerSeen bool
     void setCenterSeen(bool answer);
     void setCenterLocation(geometry_msgs::Pose2D newLocation);
@@ -34,9 +32,6 @@ class SearchController
     //VARIABLES
     //--------------------------------------
     random_numbers::RandomNumberGenerator* rng;
-
-    void CNMTargetSearch(geometry_msgs::Pose2D currentLocation, geometry_msgs::Pose2D goalLocation, geometry_msgs::Pose2D cnmCenterLocation);
-    void CNMCenterSearch(geometry_msgs::Pose2D currentLocation, geometry_msgs::Pose2D goalLocation);
 
 
 };
