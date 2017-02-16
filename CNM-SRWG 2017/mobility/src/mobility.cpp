@@ -1,3 +1,5 @@
+//#INCLUDES
+//--------------------------------------------
 #include <ros/ros.h>
 
 // ROS libraries
@@ -28,41 +30,55 @@
 #include <ros/ros.h>
 #include <signal.h>
 
-
 using namespace std;
 
-// Random number generator
-random_numbers::RandomNumberGenerator* rng;
+// Variables
+//--------------------------------------------
+random_numbers::RandomNumberGenerator* rng;     // Random number generator... should be DELETED later
 
-// Create controllers
+// STATE MACHINE STATE CONSTANTS (for mobility SWITCH)
+//--------------------------------------------
+#define STATE_MACHINE_TRANSFORM 0
+#define STATE_MACHINE_ROTATE 1
+#define STATE_MACHINE_SKID_STEER 2
+#define STATE_MACHINE_PICKUP 3
+#define STATE_MACHINE_DROPOFF 4
+
+int stateMachineState = STATE_MACHINE_TRANSFORM; //stateMachineState keeps track of current state in mobility state machine
+
+const unsigned int mapHistorySize = 500;        // How many points to use in calculating the map average position
+
+//GEOMETRY_MSG::POSE2D CLASS OBJECTS            //x, y, theta public variables (vectors)
+//--------------------------------------------
+geometry_msgs::Pose2D currentLocation;          //current location of robot       
+geometry_msgs::Pose2D currentLocationMap;       //current location on MAP
+geometry_msgs::Pose2D currentLocationAverage;   //???
+geometry_msgs::Pose2D goalLocation;             //location to drive to
+
+geometry_msgs::Pose2D centerLocation;           //location of center location
+geometry_msgs::Pose2D centerLocationMap;        //location of center on map
+geometry_msgs::Pose2D centerLocationOdom;       //location of center ODOM
+
+geometry_msgs::Pose2D mapLocation[mapHistorySize]; //An array in which to store map positions
+
+std_msgs::String msg;                           //std_msgs shares current STATE_MACHINE STATUS in mobility state machine
+geometry_msgs::Twist velocity;                  //???
+
+//Do not know what the map and odom locations do ATM - JMS
+
+//Controller Class Objects
+//--------------------------------------------
 PickUpController pickUpController;
 DropOffController dropOffController;
 SearchController searchController;
 
-// Mobility Logic Functions
-void sendDriveCommand(double linearVel, double angularVel);
-void openFingers(); // Open fingers to 90 degrees
-void closeFingers();// Close fingers to 0 degrees
-void raiseWrist();  // Return wrist back to 0 degrees
-void lowerWrist();  // Lower wrist to 50 degrees
-void mapAverage();  // constantly averages last 100 positions from map
-
-// Numeric Variables for rover positioning
-geometry_msgs::Pose2D currentLocation;
-geometry_msgs::Pose2D currentLocationMap;
-geometry_msgs::Pose2D currentLocationAverage;
-geometry_msgs::Pose2D goalLocation;
-
-geometry_msgs::Pose2D centerLocation;
-geometry_msgs::Pose2D centerLocationMap;
-geometry_msgs::Pose2D centerLocationOdom;
-
 int currentMode = 0;
-float mobilityLoopTimeStep = 0.1; // time between the mobility loop calls
+float mobilityLoopTimeStep = 0.1;               // time between the mobility loop calls
 float status_publish_interval = 1;
 float killSwitchTimeout = 10;
-bool targetDetected = false;
-bool targetCollected = false;
+bool targetDetected = false;                    //for target detection    (seen a target)
+bool targetCollected = false;                   //for target collection   (picked up a target)
+bool avoidingObstacle = false;
 
 // Set true when the target block is less than targetDist so we continue
 // attempting to pick it up rather than switching to another block in view.
@@ -89,29 +105,20 @@ bool init = false;
 // used to remember place in mapAverage array
 int mapCount = 0;
 
-// How many points to use in calculating the map average position
-const unsigned int mapHistorySize = 500;
+//Function Calls
+//--------------------------------------------
 
-// An array in which to store map positions
-geometry_msgs::Pose2D mapLocation[mapHistorySize];
+//???
+void sendDriveCommand(double linearVel, double angularVel);
 
-bool avoidingObstacle = false;
+void openFingers();                             // Open fingers to 90 degrees
+void closeFingers();                            // Close fingers to 0 degrees
+void raiseWrist();                              // Return wrist back to 0 degrees
+void lowerWrist();                              // Lower wrist to 50 degrees
+void mapAverage();                              // constantly averages last 100 positions from map
 
-std_msgs::String msg;
-
-// state machine states
-#define STATE_MACHINE_TRANSFORM 0
-#define STATE_MACHINE_ROTATE 1
-#define STATE_MACHINE_SKID_STEER 2
-#define STATE_MACHINE_PICKUP 3
-#define STATE_MACHINE_DROPOFF 4
-
-int stateMachineState = STATE_MACHINE_TRANSFORM;
-
-geometry_msgs::Twist velocity;
-char host[128];
-string publishedName;
-char prev_state_machine[128];
+//PUBLISHER/SUBSCRIBER/TIMER
+//--------------------------------------------
 
 // Publishers
 ros::Publisher stateMachinePublish;
@@ -135,13 +142,15 @@ ros::Timer stateMachineTimer;
 ros::Timer publish_status_timer;
 ros::Timer targetDetectedTimer;
 
-// records time for delays in sequanced actions, 1 second resolution.
-time_t timerStartTime;
+time_t timerStartTime;                          // records time for delays in sequanced actions, 1 second resolution.
 
-// An initial delay to allow the rover to gather enough position data to 
-// average its location.
-unsigned int startDelayInSeconds = 1;
+unsigned int startDelayInSeconds = 1;           // An initial delay to allow the rover to gather enough position data to 
+                                                // average its location.
 float timerTimeElapsed = 0;
+
+char host[128];
+string publishedName;
+char prev_state_machine[128];
 
 //Transforms
 tf::TransformListener *tfListener;
@@ -206,11 +215,14 @@ int main(int argc, char **argv)
         mapLocation[i].theta = 0;
     }
 
-    if (argc >= 2) {
+    if (argc >= 2) 
+    {
         publishedName = argv[1];
         cout << "Welcome to the world of tomorrow " << publishedName
              << "!  Mobility turnDirectionule started." << endl;
-    } else {
+    } 
+    else 
+    {
         publishedName = hostname;
         cout << "No Name Selected. Default is: " << publishedName << endl;
     }
@@ -262,8 +274,8 @@ int main(int argc, char **argv)
 // This function calls the dropOff, pickUp, and search controllers.
 // This block passes the goal location to the proportional-integral-derivative
 // controllers in the abridge package.
-void mobilityStateMachine(const ros::TimerEvent&) {
-
+void mobilityStateMachine(const ros::TimerEvent&) 
+{
     std_msgs::String stateMachineMsg;
 
     // calls the averaging function, also responsible for
@@ -290,15 +302,14 @@ void mobilityStateMachine(const ros::TimerEvent&) {
 
                 // initialization has run
                 init = true;
-            } else {
-                return;
-            }
-
+            } 
+            else { return; }
         }
 
         // If no collected or detected blocks set fingers
         // to open wide and raised position.
-        if (!targetCollected && !targetDetected) {
+        if (!targetCollected && !targetDetected) 
+        {
             // set gripper
             std_msgs::Float32 angle;
 
@@ -313,12 +324,11 @@ void mobilityStateMachine(const ros::TimerEvent&) {
         }
 
         // Select rotation or translation based on required adjustment
-        switch(stateMachineState) {
-
+        switch(stateMachineState) 
+        {
         // If no adjustment needed, select new goal
         case STATE_MACHINE_TRANSFORM:
         {
-
             stateMachineMsg.data = "TRANSFORMING";
 
             if(!CNMTransformCode())
@@ -389,7 +399,8 @@ void mobilityStateMachine(const ros::TimerEvent&) {
             break;
         }
 
-        case STATE_MACHINE_PICKUP: {
+        case STATE_MACHINE_PICKUP: 
+                {
             stateMachineMsg.data = "PICKUP";
 
             CNMPickupCode();
@@ -408,7 +419,8 @@ void mobilityStateMachine(const ros::TimerEvent&) {
             break;
         }
 
-        default: {
+        default: 
+        {
             break;
         }
 
