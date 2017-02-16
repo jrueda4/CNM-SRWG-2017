@@ -1,5 +1,21 @@
 MOBILITY
 
+--------2/15/2017--------
+EDITED BY:  Jeff Schlindwein
+
+- Organized all variable and class object instantiations.
+  + #defines
+  + Class Objects
+  + standard variables
+  + Functions
+  + Publishers/Subscribers/Timers
+  + Callback Handlers
+  + CNM Code
+- Moved rest of the main MOBILITY STATE MACHINE into dedicated functions
+  + functions are under CNM Code Follows:
+- Finished cleaning curly braces for readability
+
+
 --------2/8/2017--------
 EDITED BY:  Jeff Schlindwein, Steve Lindsey, Kaily Young, Juan Rueda, David Kirby, Rudy Garcia, Kristin Markle, Paul Ward
 
