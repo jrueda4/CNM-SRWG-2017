@@ -332,10 +332,7 @@ void mobilityStateMachine(const ros::TimerEvent&)
 		{
 			stateMachineMsg.data = "TRANSFORMING";
 
-			if (!CNMTransformCode())
-			{
-				break;
-			}
+			if (!CNMTransformCode()) { break; }
 			//Purposefully fall through to next case without breaking
 		}
 
@@ -345,10 +342,8 @@ void mobilityStateMachine(const ros::TimerEvent&)
 		case STATE_MACHINE_ROTATE:
 		{
 			stateMachineMsg.data = "ROTATING";
-			if(CNMRotateCode())
-			{
-				break;
-			}
+			
+			if(CNMRotateCode()) { break; }
 			//Purposefully fall through to next case without breaking
 		}
 
@@ -368,10 +363,7 @@ void mobilityStateMachine(const ros::TimerEvent&)
 		{
 			stateMachineMsg.data = "PICKUP";
 
-			if(CNMPickupCode())
-			{
-				return;
-			}
+			if(CNMPickupCode()) { return; }
 
 			break;
 		}
@@ -765,7 +757,7 @@ bool CNMPickupCode()
 			wristAnglePublish.publish(angle);
 			sendDriveCommand(0.0, 0);
 
-			return = true;
+			return true;
 		}
 	}
 	else 
