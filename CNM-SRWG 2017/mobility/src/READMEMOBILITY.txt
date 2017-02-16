@@ -1,5 +1,12 @@
 MOBILITY
 
+--------2/16/2017--------
+EDITED BY:  Jeff Schlindwein
+
+- Reworked obstacle detection
+  + added boolean triggers and re-implemented old obstacle design
+  + made the robot treat all obstacles the same (turn left)
+
 --------2/15/2017--------
 EDITED BY:  Jeff Schlindwein
 
