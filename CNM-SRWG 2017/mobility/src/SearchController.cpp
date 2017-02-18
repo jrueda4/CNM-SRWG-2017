@@ -37,16 +37,21 @@ SearchController::SearchController()
     centerLoop = 0;
     centerSearch = .4;
 
+    cnmNumRotations = 0;
+
     cnmCenterSeen = false;
     first = true;
 
     rng = new random_numbers::RandomNumberGenerator();
 
-    searchLoop = rng->uniformInteger(0, 8);          //random point in loop between 0 and 8
-    searchCounter = rng->uniformReal(.05, 1.5);;                              //random distance from center to start searching
+    //searchLoop = rng->uniformInteger(0, 8);                 //random point in loop between 0 and 8
+    searchCounter = rng->uniformReal(.90, 1.16);    //random distance from center to start searching
 
     centerLoop = rng->uniformInteger(0, 8);
     searchDist = .2;
+
+    cnmCenterLocation.x = 0;
+    cnmCenterLocation.y = 0;
 }
 
 /**
@@ -60,6 +65,7 @@ geometry_msgs::Pose2D SearchController::search(geometry_msgs::Pose2D currentLoca
         if (searchLoop < 0 || searchLoop > 8)
         {
             searchLoop = 0;
+            cnmNumRotations++;
         }
 
         if (searchLoop == 0)
@@ -68,6 +74,8 @@ geometry_msgs::Pose2D SearchController::search(geometry_msgs::Pose2D currentLoca
             goalLocation.x = cnmCenterLocation.x + searchCounter;
             goalLocation.y = cnmCenterLocation.y - searchCounter / 2;
             goalLocation.theta = atan2((goalLocation.y - currentLocation.y), (goalLocation.x - currentLocation.x));
+
+            cnmNumRotations++;
         }
         else if (searchLoop == 1)
         {
@@ -75,6 +83,8 @@ geometry_msgs::Pose2D SearchController::search(geometry_msgs::Pose2D currentLoca
             goalLocation.x = cnmCenterLocation.x + searchCounter;
             goalLocation.y = cnmCenterLocation.y + searchCounter / 2;
             goalLocation.theta = atan2((goalLocation.y - currentLocation.y), (goalLocation.x - currentLocation.x));
+
+            cnmNumRotations++;
         }
         else if (searchLoop == 2)
         {
@@ -82,6 +92,8 @@ geometry_msgs::Pose2D SearchController::search(geometry_msgs::Pose2D currentLoca
             goalLocation.x = cnmCenterLocation.x + searchCounter / 2;
             goalLocation.y = cnmCenterLocation.y + searchCounter;
             goalLocation.theta = atan2((goalLocation.y - currentLocation.y), (goalLocation.x - currentLocation.x));
+
+            cnmNumRotations++;
         }
         else if (searchLoop == 3)
         {
@@ -97,6 +109,8 @@ geometry_msgs::Pose2D SearchController::search(geometry_msgs::Pose2D currentLoca
             goalLocation.y = cnmCenterLocation.y + searchCounter / 2;
             goalLocation.theta = atan2((goalLocation.y - currentLocation.y), (goalLocation.x - currentLocation.x));
             looping++;
+
+            cnmNumRotations++;
         }
         else if (searchLoop == 5)
         {
@@ -111,6 +125,8 @@ geometry_msgs::Pose2D SearchController::search(geometry_msgs::Pose2D currentLoca
             goalLocation.x = cnmCenterLocation.x - searchCounter / 2;
             goalLocation.y = cnmCenterLocation.y - searchCounter;
             goalLocation.theta = atan2((goalLocation.y - currentLocation.y), (goalLocation.x - currentLocation.x));
+
+            cnmNumRotations++;
         }
         else if (searchLoop == 7)
         {
@@ -118,17 +134,31 @@ geometry_msgs::Pose2D SearchController::search(geometry_msgs::Pose2D currentLoca
             goalLocation.x = cnmCenterLocation.x + searchCounter / 2;
             goalLocation.y = cnmCenterLocation.y - searchCounter;
             goalLocation.theta = atan2((goalLocation.y - currentLocation.y), (goalLocation.x - currentLocation.x));
+
+            cnmNumRotations++;
         }
         else if (searchLoop == 8)
-        {
-            searchCounter = searchCounter + searchDist; //?
-            searchLoop = 0;
-
+        {            
             goalLocation.x = cnmCenterLocation.x + searchCounter;
             goalLocation.y = cnmCenterLocation.y - searchCounter / 2;
             goalLocation.theta = atan2((goalLocation.y - currentLocation.y), (goalLocation.x - currentLocation.x));
-        }
 
+            cnmNumRotations++;
+
+            //if they do not complete at least 4 full rotations
+            if(cnmNumRotations >= 4)
+            {
+                searchCounter = searchCounter + searchDist; //?
+
+                cnmNumRotations = 0;
+            }
+            else if(cnmNumRotations > 2)
+            {
+                cnmNumRotations = 0;
+            }
+
+            searchLoop = 0;
+        }
 
     return goalLocation;
 }
@@ -140,16 +170,50 @@ geometry_msgs::Pose2D SearchController::search(geometry_msgs::Pose2D currentLoca
 geometry_msgs::Pose2D SearchController::continueInterruptedSearch(geometry_msgs::Pose2D currentLocation, geometry_msgs::Pose2D oldGoalLocation)
 {
 
-  geometry_msgs::Pose2D newGoalLocation;
+    if (currentLocation.theta <= 45 * M_PI / 180)
+    {
+        searchLoop = 2;
+    }
+    else if (currentLocation.theta <= 90 * M_PI / 180)
+    {
+        searchLoop = 4;
+    }
+    else if (currentLocation.theta <= 135 * M_PI / 180)
+    {
+        searchLoop = 5;
+    }
+    else if (currentLocation.theta <= 180 * M_PI / 180)
+    {
+        searchLoop = 7;
+    }
+    else if (currentLocation.theta <= 225 * M_PI / 180)
+    {
+        searchLoop = 7;
+    }
+    else if (currentLocation.theta <= 270 * M_PI / 180)
+    {
+        searchLoop = 0;
+    }
+    else if (currentLocation.theta <= 310 * M_PI / 180)
+    {
+        searchLoop = 1;
+    }
+    else if (currentLocation.theta <= 360 * M_PI / 180)
+    {
+        searchLoop = 2;
+    }
 
-  //remainingGoalDist avoids magic numbers by calculating the dist
- // double remainingGoalDist = hypot(oldGoalLocation.x - currentLocation.x, oldGoalLocation.y - currentLocation.y);
+    geometry_msgs::Pose2D newGoalLocation;
 
-  newGoalLocation = search(currentLocation);
-  //this of course assumes random walk continuation. Change for diffrent search methods.
-  newGoalLocation.theta = oldGoalLocation.theta;
-  newGoalLocation.x = currentLocation.x + (0.60 * cos(oldGoalLocation.theta)); //(remainingGoalDist * cos(oldGoalLocation.theta));
-  newGoalLocation.y = currentLocation.y + (0.60 * sin(oldGoalLocation.theta)); //(remainingGoalDist * sin(oldGoalLocation.theta));
+    //remainingGoalDist avoids magic numbers by calculating the dist
+    // double remainingGoalDist = hypot(oldGoalLocation.x - currentLocation.x, oldGoalLocation.y - currentLocation.y);
+
+    newGoalLocation = search(currentLocation);
+
+    //this of course assumes random walk continuation. Change for diffrent search methods.
+    //newGoalLocation.theta = oldGoalLocation.theta;
+    //newGoalLocation.x = currentLocation.x + (0.20 * cos(oldGoalLocation.theta)); //(remainingGoalDist * cos(oldGoalLocation.theta));
+    //newGoalLocation.y = currentLocation.y + (0.20 * sin(oldGoalLocation.theta)); //(remainingGoalDist * sin(oldGoalLocation.theta));
 
     return newGoalLocation;
 }
@@ -163,6 +227,12 @@ void SearchController::setCenterLocation(geometry_msgs::Pose2D newLocation)
 {
     cnmCenterLocation = newLocation;
 }
+
+void SearchController::cnmSetRotations(int num)
+{
+    cnmNumRotations = num;
+}
+
 /*
 void SearchController::CNMCenterSearch(geometry_msgs::Pose2D currentLocation, geometry_msgs::Pose2D goalLocation)
 {
