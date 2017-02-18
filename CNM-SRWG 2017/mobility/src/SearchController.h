@@ -20,7 +20,10 @@ class SearchController
 
     //sets centerSeen bool
     void setCenterSeen(bool answer);
+
     void setCenterLocation(geometry_msgs::Pose2D newLocation);
+
+    void cnmSetRotations(int num);
 
     // performs search pattern
     geometry_msgs::Pose2D search(geometry_msgs::Pose2D currentLocation);
@@ -32,6 +35,8 @@ class SearchController
     //VARIABLES
     //--------------------------------------
     random_numbers::RandomNumberGenerator* rng;
+
+    int cnmNumRotations;
 
 
 };
