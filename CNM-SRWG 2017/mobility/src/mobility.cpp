@@ -92,9 +92,6 @@ bool timeOut = false;
 // a picked up cube is in the way.
 bool blockBlock = false;
 
-// central collection point has been seen (aka the nest)
-bool centerSeen = false;
-
 // Set true when we are insie the center circle and we need to drop the block,
 // back out, and reset the boolean cascade.
 bool reachedCollectionPoint = false;
@@ -108,7 +105,7 @@ int mapCount = 0;
 //Function Calls
 //--------------------------------------------
 
-//???
+//sets speed
 void sendDriveCommand(double linearVel, double angularVel);
 
 void openFingers();                             // Open fingers to 90 degrees
@@ -171,25 +168,33 @@ void targetDetectedReset(const ros::TimerEvent& event);
 //CNM Code Follows:
 //--------------------------------------------
 
+
+// central collection point has been seen (aka the nest)
+bool centerSeen = false;
+
 //Manipulative ORIGINAL FILE Variables
 float searchVelocity = 0.4; // meters/second  ORIGINALLY .2
 
 //Variables under MobilityStateMachine
-float rotateOnlyAngleTolerance = 0.2;       //js chnaged from .4
+float rotateOnlyAngleTolerance = 0.2;       //jms chnaged from .4
 int returnToSearchDelay = 5;
 
 int cnmSafetyCheck = 0;
 int cnmObstacleCounter = 0;
-bool cnmAvoidObstacle = false;
 
+bool cnmAvoidObstacle = false;
+bool cnmFirstBootProtocol = true;
+bool cnmHasCenterLocation = false;
+
+void CNMInit();                 //INIT COMPONENTS
 
 bool CNMTransformCode();        //A function for the Transform segment in Mobility State Machine
-                //	- returns true only if it needs to return
+                                    //	- returns true only if it needs to return
 bool CNMPickupCode();           //A function for PickUpController in Mobility State Machine
-                //	- returns false if it needs to break
-bool CNMRotateCode();		//A function for the Rotate Mobility State Machine Code
+                                    //	- returns false if it needs to break
+bool CNMRotateCode();           //A function for the Rotate Mobility State Machine Code
 
-void CNMSkidSteerCode();	//A function with all the skid steer mobility code
+void CNMSkidSteerCode();        //A function with all the skid steer mobility code
 
 //MAIN
 //--------------------------------------------
@@ -201,25 +206,6 @@ int main(int argc, char **argv)
 
     // instantiate random number generator
     rng = new random_numbers::RandomNumberGenerator();
-
-    //set initial random heading
-    goalLocation.theta = rng->uniformReal(0, 2 * M_PI);
-
-    //select initial search position 50 cm from center (0,0)
-    goalLocation.x = 0.5 * cos(goalLocation.theta + M_PI);
-    goalLocation.y = 0.5 * sin(goalLocation.theta + M_PI);
-
-    centerLocation.x = 0;
-    centerLocation.y = 0;
-    centerLocationOdom.x = 0;
-    centerLocationOdom.y = 0;
-
-    for (int i = 0; i < 100; i++)
-    {
-        mapLocation[i].x = 0;
-        mapLocation[i].y = 0;
-        mapLocation[i].theta = 0;
-    }
 
     if (argc >= 2)
     {
@@ -282,6 +268,14 @@ int main(int argc, char **argv)
 // controllers in the abridge package.
 void mobilityStateMachine(const ros::TimerEvent&)
 {
+
+    if(cnmFirstBootProtocol)
+    {
+        cnmFirstBootProtocol = false;
+
+        CNMInit();
+    }
+
     std_msgs::String stateMachineMsg;
 
     // calls the averaging function, also responsible for
@@ -417,13 +411,6 @@ void sendDriveCommand(double linearVel, double angularError)
 void targetHandler(const apriltags_ros::AprilTagDetectionArray::ConstPtr& message)
 {
 
-    if(centerSeen)
-    {
-        searchController.setCenterSeen(true);
-        searchController.setCenterLocation(centerLocation);
-
-    }
-
     // If in manual mode do not try to automatically pick up the target
     if (currentMode == 1 || currentMode == 0) { return; }
 
@@ -432,7 +419,7 @@ void targetHandler(const apriltags_ros::AprilTagDetectionArray::ConstPtr& messag
     {
         float cameraOffsetCorrection = 0.020; //meters;
 
-        centerSeen = false;
+        centerSeen = false;             //set to false
         double count = 0;
         double countRight = 0;
         double countLeft = 0;
@@ -456,8 +443,22 @@ void targetHandler(const apriltags_ros::AprilTagDetectionArray::ConstPtr& messag
                 }
 
                 centerSeen = true;
+                cnmHasCenterLocation = true;
                 count++;
             }
+        }
+
+        if(centerSeen)
+        {
+            searchController.setCenterSeen(true);
+            geometry_msgs::Pose2D location;
+
+            location = centerLocation;
+
+            location.x = currentLocation.x + (0.3 * cos(currentLocation.theta));
+            location.y = currentLocation.y + (0.3 * sin(currentLocation.theta));
+
+            searchController.setCenterLocation(location);
         }
 
         if (centerSeen && targetCollected)
@@ -481,14 +482,17 @@ void targetHandler(const apriltags_ros::AprilTagDetectionArray::ConstPtr& messag
             {
                 // turn away from the center to the left if just driving
                 // around/searching.
-                goalLocation.theta -= centeringTurn;
+                //goalLocation.theta += centeringTurn;
             }
             else
             {
                 // turn away from the center to the right if just driving
                 // around/searching.
-                goalLocation.theta -= centeringTurn;
+                //goalLocation.theta += centeringTurn;
             }
+
+            searchController.cnmSetRotations(0);
+            sendDriveCommand(-.4,0);
 
             // continues an interrupted search
             goalLocation = searchController.continueInterruptedSearch(currentLocation, goalLocation);
@@ -498,6 +502,7 @@ void targetHandler(const apriltags_ros::AprilTagDetectionArray::ConstPtr& messag
 
             return;
         }
+
     }
     // end found target and looking for center tags
 
@@ -505,7 +510,8 @@ void targetHandler(const apriltags_ros::AprilTagDetectionArray::ConstPtr& messag
     // with safety timer at greater than 5 seconds.
     PickUpResult result;
 
-    if (message->detections.size() > 0 && !targetCollected && timerTimeElapsed > 5)
+    //if we see an april tag, and don't have a target, and if timer is ok, and we have found the nest
+    if (message->detections.size() > 0 && !targetCollected && timerTimeElapsed > 5 && cnmHasCenterLocation == true)
     {
         targetDetected = true;
 
@@ -537,14 +543,22 @@ void modeHandler(const std_msgs::UInt8::ConstPtr& message)
 
 void obstacleHandler(const std_msgs::UInt8::ConstPtr& message)
 {
+    //if avoiding an obstacle
     if(cnmAvoidObstacle == true)
     {
-        sendDriveCommand(0.0, 0.4);
+        goalLocation.theta = currentLocation.theta + (M_PI/2);
+
+        goalLocation.x = currentLocation.x + (0.20 * cos(goalLocation.theta));
+        goalLocation.y = currentLocation.y + (0.20 * cos(goalLocation.theta));
+
+        stateMachineState = STATE_MACHINE_ROTATE;
+
         if(message->data == 0)
         {
             cnmAvoidObstacle = false;
         }
     }
+    //no matter what we receive from ostacle
     else if ((!targetDetected || targetCollected) && (message->data > 0))
     {
 
@@ -553,6 +567,7 @@ void obstacleHandler(const std_msgs::UInt8::ConstPtr& message)
             cnmSafetyCheck++;
             cnmObstacleCounter++;
 
+            //Turn Left
             if (cnmObstacleCounter > 45)
             {
                 //select new heading 0.4 radians to the left
@@ -561,31 +576,25 @@ void obstacleHandler(const std_msgs::UInt8::ConstPtr& message)
                 //select new position 30 cm from current location
                 goalLocation.x = currentLocation.x + (0.3 * cos(goalLocation.theta));
                 goalLocation.y = currentLocation.y + (0.3 * sin(goalLocation.theta));
+
+                //goalLocation = searchController.continueInterruptedSearch(currentLocation, goalLocation);
+
+                cnmObstacleCounter = 0;
+                cnmAvoidObstacle = true;
             }
+
+            //if you see something stop
             else if(cnmObstacleCounter <=  45)
             {
                 sendDriveCommand(0.0, 0.0);
             }
 
-            if (cnmObstacleCounter > 45)
-            {
-
-                searchController.CNMResetStuckBehavior(currentLocation);
-                cnmObstacleCounter = 0;
-                cnmAvoidObstacle = true;
-
-                CNMTransformCode();
-/*
-                goalLocation.theta = goalLocation.theta - M_PI_2;
-                goalLocation.x = currentLocation.x + (0.3 * cos(goalLocation.theta));
-                goalLocation.y = currentLocation.y + (0.3 * sin(goalLocation.theta));
-*/
-            }
             else
             {
                 // continues an interrupted search
                 goalLocation = searchController.continueInterruptedSearch(currentLocation, goalLocation);
             }
+
             // switch to transform state to trigger collision avoidance
             stateMachineState = STATE_MACHINE_ROTATE;
 
@@ -644,7 +653,7 @@ void joyCmdHandler(const sensor_msgs::Joy::ConstPtr& message)
 void publishStatusTimerEventHandler(const ros::TimerEvent&)
 {
     std_msgs::String msg;
-    msg.data = "online";
+    msg.data = "CNMSRWG17 Online";
     status_publisher.publish(msg);
 }
 
@@ -701,7 +710,6 @@ void mapAverage()
     currentLocationAverage.x = x;
     currentLocationAverage.y = y;
     currentLocationAverage.theta = theta;
-
 
     // only run below code if a centerLocation has been set by initilization
     if (init)
@@ -953,4 +961,29 @@ void CNMSkidSteerCode()
         // move back to transform step
         stateMachineState = STATE_MACHINE_TRANSFORM;
     }
+}
+
+void CNMInit()
+{
+    //create map
+    for (int i = 0; i < 100; i++)
+    {
+        mapLocation[i].x = 0;
+        mapLocation[i].y = 0;
+        mapLocation[i].theta = 0;
+    }
+
+    //set initial random heading
+    goalLocation.theta = currentLocation.theta + M_PI;
+
+    //select initial search position 50 cm from center (0,0)
+    goalLocation.x = 0.5 * cos(goalLocation.theta + M_PI);
+    goalLocation.y = 0.5 * sin(goalLocation.theta + M_PI);
+
+    stateMachineState = STATE_MACHINE_ROTATE;
+
+    centerLocation.x = 0;
+    centerLocation.y = 0;
+    centerLocationOdom.x = 0;
+    centerLocationOdom.y = 0;
 }
