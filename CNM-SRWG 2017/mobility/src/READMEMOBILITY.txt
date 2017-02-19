@@ -24,6 +24,9 @@ EDITED BY:  Jeff Schlindwein
 - if we see the center location and are not carrying anything
   + back up until it is no longer in view
   + call interruptedsearch function.
+  
+  TODO:
+  - REPLACE the current counter with a timer that is set for more precise behavior
 
 --------2/16/2017--------
 EDITED BY:  Jeff Schlindwein
