@@ -169,39 +169,43 @@ void targetDetectedReset(const ros::TimerEvent& event);
 //--------------------------------------------
 
 
-// central collection point has been seen (aka the nest)
+//Central collection point has been seen (aka the nest)
 bool centerSeen = false;
+bool cnmHasCenterLocation = false;
 
 //Manipulative ORIGINAL FILE Variables
 float searchVelocity = 0.4; // meters/second  ORIGINALLY .2
+
+//First Boot Boolean
+bool cnmFirstBootProtocol = true;
 
 //Variables under MobilityStateMachine
 float rotateOnlyAngleTolerance = 0.2;       //jms chnaged from .4
 int returnToSearchDelay = 5;
 
-int cnmSafetyCheck = 0;
-int cnmObstacleCounter = 0;
-
+//Variables for Obstacle Avoidance
 bool cnmAvoidObstacle = false;
-bool cnmFirstBootProtocol = true;
-bool cnmHasCenterLocation = false;
+bool cnmSeenAnObstacle = false;
 
+//Obstacle Avoidance Timer and Duration
 ros::Timer cnmObstacleAvoidanceTimer;
 ros::Duration cnmObstacleTimerTime(10);
 
-bool cnmSeenAnObstacle = false;
+void InitComp();                            //INIT COMPONENTS (Builds map, sets Pose 2D Objects defaults)
 
-void CNMInit();                 //INIT COMPONENTS
+void CNMFirstBoot();                        //Code for robot to run on initial switch to autonomous mode
 
-bool CNMTransformCode();        //A function for the Transform segment in Mobility State Machine
-                                    //	- returns true only if it needs to return
-bool CNMPickupCode();           //A function for PickUpController in Mobility State Machine
-                                    //	- returns false if it needs to break
-bool CNMRotateCode();           //A function for the Rotate Mobility State Machine Code
+bool CNMTransformCode();                    //A function for the Transform segment in Mobility State Machine
+                                                //	- returns true only if it needs to return
+bool CNMPickupCode();                       //A function for PickUpController in Mobility State Machine
+                                                //	- returns false if it needs to break
+bool CNMRotateCode();                       //A function for the Rotate Mobility State Machine Code
 
-void CNMSkidSteerCode();        //A function with all the skid steer mobility code
+void CNMSkidSteerCode();                    //A function with all the skid steer mobility code
 
-void CNMAvoidance(const ros::TimerEvent& event);
+
+//Timer Functions/Callbacks
+void CNMAvoidance(const ros::TimerEvent& event);    //Timer Function(when timer fires, it runs this code)
 
 //MAIN
 //--------------------------------------------
@@ -210,6 +214,8 @@ int main(int argc, char **argv)
 
     gethostname(host, sizeof(host));
     string hostname(host);
+
+    InitComp();
 
     // instantiate random number generator
     rng = new random_numbers::RandomNumberGenerator();
@@ -251,7 +257,7 @@ int main(int argc, char **argv)
     stateMachineTimer = mNH.createTimer(ros::Duration(mobilityLoopTimeStep), mobilityStateMachine);
     targetDetectedTimer = mNH.createTimer(ros::Duration(0), targetDetectedReset, true);
 
-  
+
     //CNM Timer Info
     cnmObstacleAvoidanceTimer = mNH.createTimer(cnmObstacleTimerTime, CNMAvoidance, true);
     cnmObstacleAvoidanceTimer.stop();
@@ -285,7 +291,7 @@ void mobilityStateMachine(const ros::TimerEvent&)
     {
         cnmFirstBootProtocol = false;
 
-        CNMInit();
+        CNMFirstBoot();
     }
 
     std_msgs::String stateMachineMsg;
@@ -459,6 +465,7 @@ void targetHandler(const apriltags_ros::AprilTagDetectionArray::ConstPtr& messag
                 count++;
             }
         }
+
         //CNM ADDED
         if(centerSeen)
         {
@@ -775,6 +782,43 @@ void mapAverage()
 //CNM Functions Follow
 //-----------------------------------
 
+//INITIALIZE COMPONENTS
+//-----------------------------------
+void InitComp()
+{
+    //This is original code from main, moved to a utility function.
+
+    //create map
+    for (int i = 0; i < 100; i++)
+    {
+        mapLocation[i].x = 0;
+        mapLocation[i].y = 0;
+        mapLocation[i].theta = 0;
+    }
+
+    centerLocation.x = 0;
+    centerLocation.y = 0;
+    centerLocationOdom.x = 0;
+    centerLocationOdom.y = 0;
+}
+
+//Set of code to run before search pattern starts
+//-----------------------------------
+void CNMFirstBoot()
+{
+    //set initial heading 180 degress from initial theta
+    goalLocation.theta = currentLocation.theta + M_PI;
+
+    //select position 50 cm from origin before attempting to go into search pattern
+    goalLocation.x = 0.5 * cos(goalLocation.theta + M_PI);
+    goalLocation.y = 0.5 * sin(goalLocation.theta + M_PI);
+
+    //move robot state to ROTATE because of the new coordinates.
+    stateMachineState = STATE_MACHINE_ROTATE;
+}
+
+//MOBILITY TRANFORM STATES
+//-----------------------------------
 bool CNMPickupCode()
 {
 
@@ -984,31 +1028,8 @@ void CNMSkidSteerCode()
     }
 }
 
-void CNMInit()
-{
-    //create map
-    for (int i = 0; i < 100; i++)
-    {
-        mapLocation[i].x = 0;
-        mapLocation[i].y = 0;
-        mapLocation[i].theta = 0;
-    }
-
-    //set initial random heading
-    goalLocation.theta = currentLocation.theta + M_PI;
-
-    //select initial search position 50 cm from center (0,0)
-    goalLocation.x = 0.5 * cos(goalLocation.theta + M_PI);
-    goalLocation.y = 0.5 * sin(goalLocation.theta + M_PI);
-
-    stateMachineState = STATE_MACHINE_ROTATE;
-
-    centerLocation.x = 0;
-    centerLocation.y = 0;
-    centerLocationOdom.x = 0;
-    centerLocationOdom.y = 0;
-}
-
+//CNM TIMER FUNCTIONS
+//-----------------------------------
 void CNMAvoidance(const ros::TimerEvent &event)
 {
     /*
