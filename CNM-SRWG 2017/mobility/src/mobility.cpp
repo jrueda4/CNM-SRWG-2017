@@ -251,6 +251,8 @@ int main(int argc, char **argv)
     stateMachineTimer = mNH.createTimer(ros::Duration(mobilityLoopTimeStep), mobilityStateMachine);
     targetDetectedTimer = mNH.createTimer(ros::Duration(0), targetDetectedReset, true);
 
+  
+    //CNM Timer Info
     cnmObstacleAvoidanceTimer = mNH.createTimer(cnmObstacleTimerTime, CNMAvoidance, true);
     cnmObstacleAvoidanceTimer.stop();
 
