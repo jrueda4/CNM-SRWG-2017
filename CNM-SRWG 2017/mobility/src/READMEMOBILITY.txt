@@ -3,9 +3,10 @@ MOBILITY
 --------2/19/2017--------
 EDITED BY:  Jeff Schlindwein
 
-- changed obstacle detection series to run off a timer as opposed to running off of counter
-  + increases accuracy and easily understood time increments
-  + allows us to follow similar model for other behavior
+- changed obstacle detection series to run off a timer as opposed to running off of counter  
+  + (LINES:  189, 252 , 545, 618, 1010)
+  + increases accuracy and more easily understood time increments (set at line 189)
+  + allows us to follow this timer model for other behavior
 - added publisher messages for when avoiding obstacles.  Watch the log box in the rover GUI for the updates
 
 --------2/18/2017--------
