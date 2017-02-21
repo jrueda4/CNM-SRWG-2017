@@ -62,7 +62,7 @@ geometry_msgs::Pose2D centerLocationOdom;       //location of center ODOM
 geometry_msgs::Pose2D mapLocation[mapHistorySize]; //An array in which to store map positions
 
 std_msgs::String msg;                           //std_msgs shares current STATE_MACHINE STATUS in mobility state machine
-geometry_msgs::Twist velocity;                  //???
+geometry_msgs::Twist velocity;                  //Linear and Angular Velocity Expressed as a Vector
 
 //Do not know what the map and odom locations do ATM - JMS
 
@@ -173,14 +173,16 @@ void targetDetectedReset(const ros::TimerEvent& event);
 bool centerSeen = false;
 bool cnmHasCenterLocation = false;
 
+bool cnmLocatedCenterFirst = false;                         //if this is the first time we have seen the nest
+
 //Manipulative ORIGINAL FILE Variables
-float searchVelocity = 0.4; // meters/second  ORIGINALLY .2
+float searchVelocity = 0.4;                                 // meters/second  ORIGINALLY .2
 
 //First Boot Boolean
 bool cnmFirstBootProtocol = true;
 
 //Variables under MobilityStateMachine
-float rotateOnlyAngleTolerance = 0.2;       //jms chnaged from .4
+float rotateOnlyAngleTolerance = 0.2;                       //jms chnaged from .4
 int returnToSearchDelay = 5;
 
 //Variables for Obstacle Avoidance
@@ -190,6 +192,12 @@ bool cnmSeenAnObstacle = false;
 //Obstacle Avoidance Timer and Duration
 ros::Timer cnmObstacleAvoidanceTimer;
 ros::Duration cnmObstacleTimerTime(10);
+
+//Initial turn 180 degrees
+ros::Timer cnmInitialPositioningTimer;
+ros::Duration cnmInitialPositionTimerTime(15);
+
+bool cnmInitialPositioningComplete = false;
 
 void InitComp();                            //INIT COMPONENTS (Builds map, sets Pose 2D Objects defaults)
 
@@ -206,6 +214,7 @@ void CNMSkidSteerCode();                    //A function with all the skid steer
 
 //Timer Functions/Callbacks
 void CNMAvoidance(const ros::TimerEvent& event);    //Timer Function(when timer fires, it runs this code)
+void CNMInitPositioning(const ros::TimerEvent& event);
 
 //MAIN
 //--------------------------------------------
@@ -261,6 +270,8 @@ int main(int argc, char **argv)
     //CNM Timer Info
     cnmObstacleAvoidanceTimer = mNH.createTimer(cnmObstacleTimerTime, CNMAvoidance, true);
     cnmObstacleAvoidanceTimer.stop();
+
+    cnmInitialPositioningTimer = mNH.createTimer(cnmInitialPositionTimerTime, CNMInitPositioning, true);
 
     tfListener = new tf::TransformListener();
     std_msgs::String msg;
@@ -469,14 +480,37 @@ void targetHandler(const apriltags_ros::AprilTagDetectionArray::ConstPtr& messag
         //CNM ADDED
         if(centerSeen)
         {
+            //tell search controller we found the center
             searchController.setCenterSeen(true);
+
             geometry_msgs::Pose2D location;
+            location = currentLocation;
 
-            location = centerLocation;
+            //if we haven't seen the center before
+            if(!cnmLocatedCenterFirst)
+            {
+                std_msgs::String msg;
+                msg.data = "Found Initial Nest Location";
+                infoLogPublisher.publish(msg);
 
-            location.x = currentLocation.x + (0.3 * cos(currentLocation.theta));
-            location.y = currentLocation.y + (0.3 * sin(currentLocation.theta));
+                cnmLocatedCenterFirst = true;
+            }
 
+            //if we are doing our initial spin, use this for the center
+            if(!cnmInitialPositioningComplete)
+            {
+                //location.x = currentLocation.x + (0.45 * cos(currentLocation.theta));
+                location.y = currentLocation.y + (0.45 * (sin(currentLocation.theta) - (M_PI/4)));
+            }
+
+            //if initial spin is done, is this for center
+            else
+            {
+                //location.x = currentLocation.x + (cos(currentLocation.theta));
+                location.y = currentLocation.y + (0.45 * sin(currentLocation.theta));
+            }
+
+            //pass search Controller the center point
             searchController.setCenterLocation(location);
         }
 
@@ -512,11 +546,14 @@ void targetHandler(const apriltags_ros::AprilTagDetectionArray::ConstPtr& messag
                 //goalLocation.theta += centeringTurn;
             }
 
-            searchController.cnmSetRotations(0);
-            sendDriveCommand(-.4,0);
+            if(cnmInitialPositioningComplete)
+            {
+                searchController.cnmSetRotations(0);
+                sendDriveCommand(-.4,0);
 
-            // continues an interrupted search
-            goalLocation = searchController.continueInterruptedSearch(currentLocation, goalLocation);
+                // continues an interrupted search
+                goalLocation = searchController.continueInterruptedSearch(currentLocation, goalLocation);
+            }
 
             targetDetected = false;
             pickUpController.reset();
@@ -593,25 +630,27 @@ void obstacleHandler(const std_msgs::UInt8::ConstPtr& message)
     //no matter what we receive from obstacle
     else if ((!targetDetected || targetCollected) && (message->data > 0))
     {
-
-        if (message->data == 1 || message->data == 2 || message->data == 3)
+        if(cnmInitialPositioningComplete)
         {
-            //start obstacle timer
-            cnmObstacleAvoidanceTimer.start();
-
-            //if you see something stop
-            sendDriveCommand(0.0, 0.0);
-
-            //if this is the first time we are acknowledging an obstacle
-            if(!cnmSeenAnObstacle)
+            if (message->data == 1 || message->data == 2 || message->data == 3)
             {
-                std_msgs::String msg;
-                msg.data = "Obstacle Detected";
-                infoLogPublisher.publish(msg);
-                cnmSeenAnObstacle = true;
-            }
+                //start obstacle timer
+                cnmObstacleAvoidanceTimer.start();
 
-            stateMachineState = STATE_MACHINE_ROTATE;
+                //if you see something stop
+                sendDriveCommand(0.0, 0.0);
+
+                //if this is the first time we are acknowledging an obstacle
+                if(!cnmSeenAnObstacle)
+                {
+                    std_msgs::String msg;
+                    msg.data = "Obstacle Detected";
+                    infoLogPublisher.publish(msg);
+                    cnmSeenAnObstacle = true;
+                }
+
+                stateMachineState = STATE_MACHINE_ROTATE;
+            }
         }
     }
     //if we saw a target but no longer see one
@@ -806,6 +845,8 @@ void InitComp()
 //-----------------------------------
 void CNMFirstBoot()
 {
+    cnmInitialPositioningTimer.start();
+
     //set initial heading 180 degress from initial theta
     goalLocation.theta = currentLocation.theta + M_PI;
 
@@ -865,8 +906,8 @@ bool CNMPickupCode()
             goalLocation.theta = atan2(centerLocationOdom.y - currentLocation.y, centerLocationOdom.x - currentLocation.x);
 
             // set center as goal position
-            goalLocation.x = centerLocationOdom.x = 0;
-            goalLocation.y = centerLocationOdom.y;
+            goalLocation.x = centerLocationMap.x = 0;
+            goalLocation.y = centerLocationMap.y;
 
             // lower wrist to avoid ultrasound sensors
             std_msgs::Float32 angle;
@@ -1032,17 +1073,22 @@ void CNMSkidSteerCode()
 //-----------------------------------
 void CNMAvoidance(const ros::TimerEvent &event)
 {
-    /*
+
     //select new heading 0.4 radians to the left
     goalLocation.theta = currentLocation.theta + 0.4;
 
     //select new position 30 cm from current location
     goalLocation.x = currentLocation.x + (0.3 * cos(goalLocation.theta));
     goalLocation.y = currentLocation.y + (0.3 * sin(goalLocation.theta));
-    */
+
     cnmAvoidObstacle = true;
 
     std_msgs::String msg;
     msg.data = "Obstacle Avoidance Initiated";
     infoLogPublisher.publish(msg);
+}
+
+void CNMInitPositioning(const ros::TimerEvent &event)
+{
+    cnmInitialPositioningComplete = true;
 }
