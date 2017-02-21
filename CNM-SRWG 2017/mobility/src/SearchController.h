@@ -3,6 +3,7 @@
 
 #include <geometry_msgs/Pose2D.h>
 #include <random_numbers/random_numbers.h>
+#include <angles/angles.h>
 
 /**
  * This class implements the search control algorithm for the rovers. The code
