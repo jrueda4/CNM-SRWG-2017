@@ -1,5 +1,21 @@
 MOBILITY
 
+--------2/8/2017--------
+EDITED BY:  Jeff Schlindwein, Steve Lindsey, Kaily Young, Juan Rueda, Paul Ward
+
+- UPDATED Timer Information
+  + added new Timer for initial beginning behavior (turn 180 degrees and drive to get out of the center) 
+    (LINES: 197, 198, 274, 500, 848, 1091)
+  + added publisher for when we see the nest for the first time
+    (LINE 492)
+  + working on code that offsets center location from where robot last see's tag 256
+    - currently works when robot is spinning 180, but gets messy after that.
+      + loop gets noticeably disorganized
+- TODO:
+  + add better behavior for navigating after seeing center
+  + work on behavior for spreading out robots
+  + start delving into pickup and drop off behavior
+
 --------2/19/2017--------
 EDITED BY:  Jeff Schlindwein
 
