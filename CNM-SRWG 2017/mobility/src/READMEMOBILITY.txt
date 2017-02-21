@@ -18,6 +18,8 @@ EDITED BY:  Jeff Schlindwein, Steve Lindsey, Kaily Young, Juan Rueda, Paul Ward
   
 - ISSUES:
   + When running rovers only, the SIMULATION will acknowledge the existance of the new initial TIMER
+    - Behavior is noticeably different.  Will have to start watching real rovers for further code changes.
+      + robots act erratically for no reason
   + When running rovers AND targets, the SIMULATION REFUSES to acknowledge there is a TIMER OR a BOOLEAN
     trigger for the init behavior.
       - must test on REAL ROVERS to see actual behavior
