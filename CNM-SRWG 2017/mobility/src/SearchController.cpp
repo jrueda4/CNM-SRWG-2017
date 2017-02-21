@@ -45,7 +45,7 @@ SearchController::SearchController()
     rng = new random_numbers::RandomNumberGenerator();
 
     //searchLoop = rng->uniformInteger(0, 8);                 //random point in loop between 0 and 8
-    searchCounter = rng->uniformReal(.90, 1.16);    //random distance from center to start searching
+    searchCounter = rng->uniformReal(.7, 2.01);    //random distance from center to start searching
 
     centerLoop = rng->uniformInteger(0, 8);
     searchDist = .2;
@@ -170,35 +170,35 @@ geometry_msgs::Pose2D SearchController::search(geometry_msgs::Pose2D currentLoca
 geometry_msgs::Pose2D SearchController::continueInterruptedSearch(geometry_msgs::Pose2D currentLocation, geometry_msgs::Pose2D oldGoalLocation)
 {
 
-    if (currentLocation.theta <= 45 * M_PI / 180)
+    if (currentLocation.theta <= angles::from_degrees(45))
     {
         searchLoop = 2;
     }
-    else if (currentLocation.theta <= 90 * M_PI / 180)
+    else if (currentLocation.theta <= angles::from_degrees(90))
     {
         searchLoop = 4;
     }
-    else if (currentLocation.theta <= 135 * M_PI / 180)
+    else if (currentLocation.theta <= angles::from_degrees(135))
     {
         searchLoop = 5;
     }
-    else if (currentLocation.theta <= 180 * M_PI / 180)
+    else if (currentLocation.theta <= angles::from_degrees(180))
     {
         searchLoop = 7;
     }
-    else if (currentLocation.theta <= 225 * M_PI / 180)
+    else if (currentLocation.theta <= angles::from_degrees(225))
     {
         searchLoop = 7;
     }
-    else if (currentLocation.theta <= 270 * M_PI / 180)
+    else if (currentLocation.theta <= angles::from_degrees(270))
     {
         searchLoop = 0;
     }
-    else if (currentLocation.theta <= 310 * M_PI / 180)
+    else if (currentLocation.theta <= angles::from_degrees(310))
     {
         searchLoop = 1;
     }
-    else if (currentLocation.theta <= 360 * M_PI / 180)
+    else if (currentLocation.theta <= angles::from_degrees(360))
     {
         searchLoop = 2;
     }
