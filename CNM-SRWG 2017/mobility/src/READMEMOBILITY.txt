@@ -15,6 +15,12 @@ EDITED BY:  Jeff Schlindwein, Steve Lindsey, Kaily Young, Juan Rueda, Paul Ward
   + add better behavior for navigating after seeing center
   + work on behavior for spreading out robots
   + start delving into pickup and drop off behavior
+  
+- ISSUES:
+  + When running rovers only, the SIMULATION will acknowledge the existance of the new initial TIMER
+  + When running rovers AND targets, the SIMULATION REFUSES to acknowledge there is a TIMER OR a BOOLEAN
+    trigger for the init behavior.
+      - must test on REAL ROVERS to see actual behavior
 
 --------2/19/2017--------
 EDITED BY:  Jeff Schlindwein
