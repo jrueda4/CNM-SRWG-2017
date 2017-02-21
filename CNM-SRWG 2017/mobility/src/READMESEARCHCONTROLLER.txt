@@ -1,5 +1,15 @@
 SEARCHCONTROLLER.CPP
 
+--------2/20/2017--------
+EDITED BY:  Jeff Schlindwein, Steve Lindsey, Kaily Young, Juan Rueda, Paul Ward
+- Incorporated <angles/angles.h> to header file
+  + gives us access to radians to degrees conversion functions
+    - used new conversion functions to simplify interruptedSearch
+- Adjusted search pattern distances (randomly generated numbers that dictate how far we start away from the center)
+  + values are (.7, 2.01) from (.9, 1.56)
+  + this gives us much greater variety for robots to choose a search line that is different than another robots
+  + searchDistance may be increased (currently set to .2 which is the width of a robot)
+
 --------2/18/2017--------
 EDITED BY:  Jeff Schlindwein
 
