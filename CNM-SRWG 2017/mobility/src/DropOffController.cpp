@@ -3,10 +3,10 @@
 DropOffController::DropOffController() {
     cameraOffsetCorrection = 0.020; //meters
     centeringTurn = 0.15; //radians
-    seenEnoughCenterTagsCount = 10;
-    collectionPointVisualDistance = 0.5; //in meters
+    seenEnoughCenterTagsCount = 13;
+    collectionPointVisualDistance = 0.85; //in meters
     reachedCollectionPoint = false;
-    spinSize = 0.10; //in meters aka 10cm 
+    spinSize = 0.10; //in meters aka 10cm
     addSpinSizeAmmount = 0.10; //in meters
 
     result.cmdVel = 0;
@@ -38,12 +38,12 @@ DropOffController::DropOffController() {
 
 void DropOffController::calculateDecision() {
 
-    result.goalDriving = true; //assumewe are driving to the center unless we see targets or have seen targets.
+    result.goalDriving = true; //assume we are driving to the center unless we see targets or have seen targets.
     result.timer = false;
 
 
-    //if we are in the routine for exciting the circle once we have droppeda block off and reseting all our flags
-    //to resart our search.
+    //if we are in the routine for exiting the circle once we have dropped a block off and resetting all our flags
+    //to restart our search.
     if(reachedCollectionPoint)
     {
         result.goalDriving = false;
@@ -93,7 +93,7 @@ void DropOffController::calculateDecision() {
         if (spinner > 2*M_PI)
         {
             spinner -= 2*M_PI;
-	    addSpinSize += addSpinSizeAmmount;
+        addSpinSize += addSpinSizeAmmount;
         }
         circularCenterSearching = true;
         //safety flag to prevent us trying to drive back to the
