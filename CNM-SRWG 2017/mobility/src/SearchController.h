@@ -26,6 +26,9 @@ class SearchController
 
     void cnmSetRotations(int num);
 
+    int cnmGetSearchPosition();
+    double cnmGetSearchDistance();
+
     // performs search pattern
     geometry_msgs::Pose2D search(geometry_msgs::Pose2D currentLocation);
 
@@ -38,6 +41,9 @@ class SearchController
     random_numbers::RandomNumberGenerator* rng;
 
     int cnmNumRotations;
+
+    //gets closest point to go to
+    geometry_msgs::Pose2D cnmGetPositionInSearchPattern(geometry_msgs::Pose2D currentLocation);
 
 
 };
