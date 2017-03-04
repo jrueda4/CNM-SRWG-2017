@@ -1,0 +1,66 @@
+Mobility +++++++++++++++++++++++++++++++++++++++++++++
+
+//line 58 geometry_msgs::Pose2D clusterLocation;
+
+line 129 ros::Publisher buddyIDPublish;
+//         ros::Publisher buddyLocationPub;
+
+line 139 ros::Subscriber buddyIDSubscriber;
+//         ros::Subscriber buddyLocationSub;
+
+line 173 void buddyIDcallBack(const std_msgs::Float32& msgID);
+
+line 176 bool SwarmieID = 0;
+
+line 258   buddyIDSubscriber = mNH.subscribe("msgID", 1000, buddyIDcallBack);
+//         buddyLocationSub = mNH.subscribe((publishedName + "/clusterLocation"), 1000, buddyLocationCallBack);
+
+line 267   buddyIDPublish = mNH.advertise<std_msgs::Float32>("msgID", 1000);
+ //        buddyLocationPub = mNH.advertise<geometry_msgs::Pose2D>((publishedName + "/clusterLocation"), 1000);
+
+line 291  if(SwarmieID == 1 && targetDetected == false)
+          {
+            std_msgs::String msg;
+            msg.data = "I AM buddy main";
+            infoLogPublisher.publish(msg);
+          } 
+   
+
+line 555  std_msgs::String msg;
+          msg.data = 1;
+          buddyIDPublish.publish(msg);
+
+//line 560 geometry_msgs::Pose2D msg;
+//         buddyLocationPub.publish(currentLocation);
+
+line 1083 void buddyIDcallBack(const std_msgs::Float32& message)
+          {
+            SwarmieID = 1;
+
+            if(SwarmieID == 1 && targetDetected == false)
+          {
+            std_msgs::String msg;
+            msg.data = "I AM buddy";
+            infoLogPublisher.publish(msg);
+           }
+    
+           if(SwarmieID == 1 && targetDetected == true)
+           {
+             std_msgs::String msg;
+             msg.data = "I AM finder";
+             infoLogPublisher.publish(msg); 
+           }
+          }
+
+++++for the log output+++++++++++++++++++
+if(message->data == 0)
+        {
+            std_msgs::String msg;
+            msg.data = "Navigated Obstacle";
+            infoLogPublisher.publish(msg);
+
+driveControlPublish.publish(velocity);
+
+void joyCmdHandler(const sensor_msgs::Joy::ConstPtr& message)
+
+sendDriveCommand( 0, 0)
