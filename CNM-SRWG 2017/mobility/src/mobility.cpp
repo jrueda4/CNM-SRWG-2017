@@ -170,44 +170,37 @@ void targetDetectedReset(const ros::TimerEvent& event);
 //--------------------------------------------
 
 
-double CENTEROFFSET = 0.75;                                 //offset for seeing center
+double CENTEROFFSET = 0.45;                                 //offset for seeing center
 
 //Central collection point has been seen (aka the nest)
-bool centerSeen = false;
-bool cnmHasCenterLocation = false;
+bool centerSeen = false;                                    //If we CURRENTLY see the center
+bool cnmHasCenterLocation = false;                          //If we have a center/nest location at all
+bool cnmLocatedCenterFirst = false;                         //If this is the first time we have seen the nest
 
-bool cnmLocatedCenterFirst = false;                         //if this is the first time we have seen the nest
-
-//Manipulative ORIGINAL FILE Variables
+//ORIGINAL FILE VARIABLE:  MOVED HERE FOR EASY LOCATING
 float searchVelocity = 0.2;                                 // meters/second  ORIGINALLY .2
 
 //First Boot Boolean
 bool cnmFirstBootProtocol = true;
 
-//Variables under MobilityStateMachine
+//Variables for MobilityStateMachine:  MOVED HERE FOR SCOPE
 float rotateOnlyAngleTolerance = 0.5;                       //jms chnaged from .4
 int returnToSearchDelay = 5;
-
-int searchPattern = 0;//rng->uniformInteger(0, 8);
 
 //Variables for Obstacle Avoidance
 bool cnmAvoidObstacle = false;
 bool cnmSeenAnObstacle = false;
 
+//Variables for reverse/180 behvaior
+bool firstReverse = true;
 bool cnmReverse = false;
 bool cnmReverseDone = true;
-bool firstReverse = true;
 bool cnmTurn180Done = true;
 int cnmCheckTimer = 0;
 
-bool cnmDropOff = false;
-
 //Variable for avoiding targets when carrying a target
 bool cnmAvoidTargets = false;
-
 bool cnmRotate = false;
-
-geometry_msgs::Pose2D turn180;
 
 //Obstacle Avoidance Timer and Duration
 ros::Timer cnmObstacleAvoidanceTimer;
@@ -245,8 +238,6 @@ bool CNMPickupCode();                       //A function for PickUpController in
 bool CNMRotateCode();                       //A function for the Rotate Mobility State Machine Code
 
 void CNMSkidSteerCode();                    //A function with all the skid steer mobility code
-
-void CNMAvoidTargets();                     //A function if we are returning with a target to avoid other targets
 
 //Timer Functions/Callbacks
 void CNMAvoidance(const ros::TimerEvent& event);    //Timer Function(when timer fires, it runs this code)
@@ -847,28 +838,14 @@ void targetHandler(const apriltags_ros::AprilTagDetectionArray::ConstPtr& messag
 
                 //Print Message to Info Box
                 std_msgs::String msg;
-                msg.data = "Avoiding Blocks; Carrying Target";
+                msg.data = "Avoiding Blocks; Carrying Target.  Starting Timer";
                 infoLogPublisher.publish(msg);                
-                /*
-                int position = searchController.cnmGetSearchPosition();
-
-                double distance = searchController.cnmGetSearchDistance();
-
-                stringstream ss;
-                ss << "Traveling to point " << position << " in pattern:  " << distance;
-                msg.data = ss.str();
-                infoLogPublisher.publish(msg);
-                */
-
-                msg.data = "Starting Avoid Timer";
-                infoLogPublisher.publish(msg);
 
                 //START NEW TIMER
                 cnmAvoidOtherTargetTimer.start();
             }
 
             //RUN AVOID CODE
-            //CNMAvoidTargets();
             cnmRotate = true;
         }
     }
@@ -1362,13 +1339,6 @@ bool CNMTransformCode()
             int position;
             double distance;
 
-            searchPattern++;
-
-            if(searchPattern == 8)
-            {
-                searchPattern = 0;
-            }
-
             goalLocation = searchController.search(currentLocation);
 
             position = searchController.cnmGetSearchPosition();
@@ -1435,22 +1405,6 @@ void CNMSkidSteerCode()
         // move back to transform step
         stateMachineState = STATE_MACHINE_TRANSFORM;
     }
-}
-
-void CNMAvoidTargets()
-{
-/*
-    //select new heading 0.4 radians to the left
-    goalLocation.theta = currentLocation.theta + 0.4;
-
-    //select new position 30 cm from current location
-    goalLocation.x = currentLocation.x - (0.3 * cos(goalLocation.theta));
-    goalLocation.y = currentLocation.y - (0.3 * sin(goalLocation.theta));
-
-    stateMachineState = STATE_MACHINE_ROTATE;
-*/
-    sendDriveCommand(-0.2, 0.0);
-
 }
 
 //CNM TIMER FUNCTIONS
@@ -1555,10 +1509,4 @@ void CNMReverseTimer(const ros::TimerEvent& event)
     cnmReverseDone = true;
 
     cnmReverseTimer.stop();
-}
-
-void CNMForwardTimer(const ros::TimerEvent& event)
-{
-    cnmDropOff = false;
-    cnmReverse = true;
 }
