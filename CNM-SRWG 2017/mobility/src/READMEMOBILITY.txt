@@ -1,6 +1,20 @@
 MOBILITY
 
---------2/8/2017--------
+--------3/4/2017--------
+EDITED BY:  Jeff Schlindwein, Steve Lindsey, Kaily Young, Juan Rueda, Paul Ward
+
+- FIXED:  Target avoidence protocol
+  + Implemented rough sketch of working behavior for handling other targets when carrying one
+    - ADDED:  Bool called cnmRotate
+      + is called when we see another block in our camera, calls behavior chain
+        - turns to the right for 4 seconds
+        - drive forward for .35 meters
+        - continues on previous path
+- ADDED:  CENTEROFFSET double
+  + is a constant for changing the offset we place the center at when we see it
+-Cleaned up Mobility
+
+--------3/1/2017--------
 EDITED BY:  Jeff Schlindwein, Steve Lindsey, Kaily Young, Juan Rueda, Paul Ward
 
 - UPDATED Timer Information
