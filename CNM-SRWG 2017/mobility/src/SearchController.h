@@ -33,19 +33,46 @@ class SearchController
     geometry_msgs::Pose2D search(geometry_msgs::Pose2D currentLocation);
 
     // continues search pattern after interruption
+    //geometry_msgs::Pose2D continueInterruptedSearch(geometry_msgs::Pose2D currentLocation, geometry_msgs::Pose2D oldGoalLocation);
     geometry_msgs::Pose2D continueInterruptedSearch(geometry_msgs::Pose2D currentLocation, geometry_msgs::Pose2D oldGoalLocation);
+
+    bool getCenterSeen(){ return cnmCenterSeen; }
 
   private:
     //VARIABLES
     //--------------------------------------
     random_numbers::RandomNumberGenerator* rng;
 
+    //CNM VARIABLES
+    //--------------------------------------
+    geometry_msgs::Pose2D cnmCenterLocation;
+
+    //BOOLEAN TRIGGERS
+    //--------------------------------------
+    bool cnmCenterSeen;
+    bool cnmHasReset;
+
+    //PRIMITIVES
+    //--------------------------------------
+
+    //Target Search
+    int searchLoop;             //int of 0 - 8
+
+    double searchDist;
+    double searchCounter;
+    double cnmSearchCounterDistance;
+
     int cnmNumRotations;
 
     //gets closest point to go to
     geometry_msgs::Pose2D cnmGetPositionInSearchPattern(geometry_msgs::Pose2D currentLocation);
 
+    int RightSearch(double absLocationAngle);
+    int LeftSearch(double absLocationAngle);
 
+    //performs alternating left/right search pattern
+    geometry_msgs::Pose2D SearchLeft(geometry_msgs::Pose2D currentLocation);
+    geometry_msgs::Pose2D SearchRight(geometry_msgs::Pose2D currentLocation);
 };
 
 #endif /* SEARCH_CONTROLLER */
