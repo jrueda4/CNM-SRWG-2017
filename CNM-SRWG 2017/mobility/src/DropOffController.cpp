@@ -1,10 +1,13 @@
 #include "DropOffController.h"
 
-DropOffController::DropOffController() {
+bool isLost;
+
+DropOffController::DropOffController()
+{
     cameraOffsetCorrection = 0.020; //meters
     centeringTurn = 0.15; //radians
     seenEnoughCenterTagsCount = 13;
-    collectionPointVisualDistance = 0.85; //in meters
+    collectionPointVisualDistance = 0.50; //in meters
     reachedCollectionPoint = false;
     spinSize = 0.10; //in meters aka 10cm
     addSpinSizeAmmount = 0.10; //in meters
@@ -32,8 +35,9 @@ DropOffController::DropOffController() {
     prevCount = 0;
 
     searchVelocity = 0.15;
-}
 
+    isLost = false;
+}
 
 
 void DropOffController::calculateDecision() {
@@ -67,6 +71,8 @@ void DropOffController::calculateDecision() {
             result.cmdVel = -0.3;
             result.angleError = 0.0;
         }
+
+        isLost = false;
         return;
     }
 
@@ -83,22 +89,45 @@ void DropOffController::calculateDecision() {
     }
     else if (timerTimeElapsed >=5)//spin search for center
     {
+/*
+        if(dropOffSearch->getCenterSeen())
+        {
+            dropOffSearch->setCenterSeen(false);
+        }
+
+        result.centerGoal = dropOffSearch->search(currentLocation);
+*/
         //sets a goal that is 60cm from the centerLocation and spinner
         //radians counterclockwise from being purly along the x-axis.
-        result.centerGoal.x = centerLocation.x + (spinSize + addSpinSize) * cos(spinner);
-        result.centerGoal.y = centerLocation.y + (spinSize + addSpinSize) * sin(spinner);
-        result.centerGoal.theta = atan2(result.centerGoal.y - currentLocation.y, result.centerGoal.x - currentLocation.x);
 
-        spinner += 45*(M_PI/180); //add 45 degrees in radians to spinner.
-        if (spinner > 2*M_PI)
+//        result.centerGoal.x = centerLocation.x + (spinSize + addSpinSize) * cos(spinner);
+//        result.centerGoal.y = centerLocation.y + (spinSize + addSpinSize) * sin(spinner);
+//        result.centerGoal.theta = atan2(result.centerGoal.y - currentLocation.y, result.centerGoal.x - currentLocation.x);
+
+        if(isLost == false)
         {
-            spinner -= 2*M_PI;
-        addSpinSize += addSpinSizeAmmount;
+
+            DropOffSearch->setCenterSeen(false);
+            DropOffSearch->setCenterLocation(currentLocation);
+            isLost = true;
+
         }
+
+        result.centerGoal = DropOffSearch->search(currentLocation);
+
+//        spinner += 45*(M_PI/180); //add 45 degrees in radians to spinner.
+//        if (spinner > 2*M_PI)
+//        {
+//            spinner -= 2*M_PI;
+//            addSpinSize += addSpinSizeAmmount;
+//        }
+
         circularCenterSearching = true;
         //safety flag to prevent us trying to drive back to the
         //center since we have a block with us and the above point is
         //greater than collectionPointVisualDistance from the center.
+
+
     }
 
 
@@ -209,17 +238,17 @@ void DropOffController::calculateDecision() {
 }
 
 
-void DropOffController::setDataLocations(geometry_msgs::Pose2D center, geometry_msgs::Pose2D current, float sync) {
-
+void DropOffController::setDataLocations(geometry_msgs::Pose2D center, geometry_msgs::Pose2D current, float sync)
+{
     centerLocation = center;
     currentLocation = current;
     timerTimeElapsed = sync;
     calculateDecision();
-
 }
 
 
-void DropOffController::reset() {
+void DropOffController::reset()
+{
     result.cmdVel = 0;
     result.angleError = 0;
     result.fingerAngle = -1;
