@@ -19,7 +19,7 @@ SearchController::SearchController()
     searchDist = .2;                                            //how much to add to our search pattern (.2 is roughly the width of a swarmie)
 
     //random distance from center to start searching
-    cnmSearchCounterDistance = rng->uniformReal(MIN_DIST_SEARCH, MAX_DIST_SEARCH);
+    cnmSearchCounterDistance = 1;//rng->uniformReal(MIN_DIST_SEARCH, MAX_DIST_SEARCH);
 
     cnmNumRotations = 0;
 
@@ -34,13 +34,21 @@ SearchController::SearchController()
     reverseSearch = false;
 }
 
-/**
- * This code implements a basic random walk search.
- */
 geometry_msgs::Pose2D SearchController::search(geometry_msgs::Pose2D currentLocation)
 {
 
     geometry_msgs::Pose2D goalLocation;
+
+    int dist = floor(searchCounter);
+
+    if(dist % 2 == 0 && dist > 2)
+    {
+        reverseSearch = true;
+    }
+    else
+    {
+        reverseSearch = false;
+    }
 
     //Check to see if we are alternating directions
     //---------------------------------------------
@@ -71,6 +79,7 @@ geometry_msgs::Pose2D SearchController::SearchRight(geometry_msgs::Pose2D curren
           //reset search counter
           searchCounter = cnmSearchCounterDistance;              //random distance from center to start searching
           cnmHasReset = false;
+          hasDoneFirstRotation = false;
       }
 
       //if for some reason searchLoop goes out of bounds, reset
@@ -97,7 +106,6 @@ geometry_msgs::Pose2D SearchController::SearchRight(geometry_msgs::Pose2D curren
               else
               {
                   searchCounter = searchCounter + searchDist;         //Increment at 0.2 for best results
-                  reverseSearch = false;
               }
 
 
@@ -270,6 +278,7 @@ geometry_msgs::Pose2D SearchController::SearchLeft(geometry_msgs::Pose2D current
           //reset search counter
           searchCounter = cnmSearchCounterDistance;              //random distance from center to start searching
           cnmHasReset = false;
+          hasDoneFirstRotation = false;
       }
 
       //if for some reason searchLoop goes out of bounds, reset
@@ -296,7 +305,6 @@ geometry_msgs::Pose2D SearchController::SearchLeft(geometry_msgs::Pose2D current
           else
           {
               searchCounter = searchCounter + searchDist;         //Increment at 0.2 for best results
-              reverseSearch = true;
           }
 
           goalLocation.x = cnmCenterLocation.x + searchCounter;
@@ -466,18 +474,7 @@ geometry_msgs::Pose2D SearchController::continueInterruptedSearch(geometry_msgs:
 
     geometry_msgs::Pose2D newGoalLocation;
 
-    //Check to see if the angle coming in is positive or negative
-    //---------------------------------------------
-    if(currentLocation.theta < 0)
-    {
-        //if negative, subtract from 2PI to get its positive angle
-        absLocationAngle = (2 * M_PI) + currentLocation.theta;
-    }
-    else
-    {
-        //if positive, use its current angle
-        absLocationAngle = currentLocation.theta;
-    }
+    absLocationAngle = angles::normalize_angle_positive(currentLocation.theta);
 
     //Check to see if we are alternating directions
     //---------------------------------------------
